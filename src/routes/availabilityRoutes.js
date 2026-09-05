@@ -1,0 +1,1 @@
+const r=require("express").Router(),{query}=require("express-validator"),c=require("../controllers/availabilityController"),v=require("../middleware/validate");r.get("/search",[query("hotelId").isMongoId(),query("checkIn").isISO8601(),query("checkOut").isISO8601(),query("guests").optional().isInt({min:1})],v,c.searchAvailability);module.exports=r;

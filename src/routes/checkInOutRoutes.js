@@ -1,0 +1,1 @@
+const r=require("express").Router(),p=require("../middleware/auth"),a=require("../middleware/role"),c=require("../controllers/checkInOutController");r.put("/:id/checkin",p,a("staff","hotelOwner","admin"),c.checkIn);r.put("/:id/checkout",p,a("staff","hotelOwner","admin"),c.checkOut);module.exports=r;

@@ -1,0 +1,1 @@
+const mongoose=require("mongoose");const s=new mongoose.Schema({roomTypeId:{type:mongoose.Schema.Types.ObjectId,ref:"RoomType",required:true},season:{type:String,enum:["normal","weekend","peak"],required:true},multiplier:{type:Number,required:true,min:.1}},{timestamps:true});s.index({roomTypeId:1});module.exports=mongoose.model("PricingRule",s);

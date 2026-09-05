@@ -1,0 +1,1 @@
+const r=require("express").Router(),{query}=require("express-validator"),p=require("../middleware/auth"),a=require("../middleware/role"),v=require("../middleware/validate"),c=require("../controllers/reportController");r.get("/occupancy",p,a("admin"),[query("hotelId").isMongoId()],v,c.occupancyReport);module.exports=r;

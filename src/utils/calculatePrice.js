@@ -1,0 +1,3 @@
+const PricingRule=require("../models/PricingRule");
+const nights=(a,b)=>Math.ceil((new Date(b)-new Date(a))/86400000);
+module.exports=async({roomType,checkIn,checkOut})=>{const n=nights(checkIn,checkOut);if(n<=0)throw new Error("checkOut must be after checkIn");let m=1;for(const r of await PricingRule.find({roomTypeId:roomType._id})){const d=new Date(checkIn);if(r.season==="peak")m=Math.max(m,r.multiplier);if(r.season==="weekend"&&(d.getDay()===0||d.getDay()===6))m=Math.max(m,r.multiplier)}const roomCost=roomType.basePrice*m*n,taxes=+(roomCost*.12).toFixed(2);return{nights:n,multiplier:m,roomCost,taxes,totalAmount:+(roomCost+taxes).toFixed(2)}};
