@@ -1,62 +1,234 @@
 {
   "info": {
-    "name": "Hotel Booking API",
+    "name": "Hotel Booking API - Member 2 Sprint 2",
+    "description": "Automated Postman tests for reservation booking, dynamic pricing, booking status, and check-in/check-out.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:5000"
-    }
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "guestEmail", "value": "guest2@test.com" },
+    { "key": "guestPassword", "value": "Guest@123" },
+    { "key": "ownerEmail", "value": "owner@test.com" },
+    { "key": "ownerPassword", "value": "Owner@123" },
+    { "key": "hotelId", "value": "" },
+    { "key": "roomTypeId", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "cancellationBookingId", "value": "" },
+    { "key": "preCheckinBookingId", "value": "" },
+    { "key": "guestToken", "value": "" },
+    { "key": "ownerToken", "value": "" },
+    { "key": "pricingRuleId", "value": "" }
   ],
   "item": [
     {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/"
-      }
-    },
-    {
-      "name": "Register",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Test Guest\",\"email\":\"guest@example.com\",\"password\":\"password123\",\"role\":\"guest\"}"
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('success=true', () => pm.expect(pm.response.json().success).to.eql(true));"] } }]
         },
-        "url": "{{baseUrl}}/api/auth/register"
-      }
-    },
-    {
-      "name": "Login",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"email\":\"guest@example.com\",\"password\":\"password123\"}"
+        {
+          "name": "Guest Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{guestEmail}}\",\n  \"password\": \"{{guestPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.test('token exists', () => pm.expect(data.token).to.be.a('string').and.not.empty);", "pm.collectionVariables.set('guestToken', data.token);"] } }]
         },
-        "url": "{{baseUrl}}/api/auth/login"
-      }
+        {
+          "name": "Owner Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{ownerPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.test('token exists', () => pm.expect(data.token).to.be.a('string').and.not.empty);", "pm.collectionVariables.set('ownerToken', data.token);"] } }]
+        },
+        {
+          "name": "Discover Seeded Hotel",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/hotels" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('hotel exists', () => pm.expect(data.hotels).to.be.an('array').and.not.empty);", "const hotel = data.hotels.find(item => item.name === 'P03 Demo Hotel') || data.hotels[0];", "pm.collectionVariables.set('hotelId', hotel._id);"] } }]
+        },
+        {
+          "name": "Discover Standard Room Type",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/room-types/hotel/{{hotelId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('room type exists', () => pm.expect(data.roomTypes).to.be.an('array').and.not.empty);", "const roomType = data.roomTypes.find(item => item.name === 'Standard Room') || data.roomTypes[0];", "pm.collectionVariables.set('roomTypeId', roomType._id);"] } }]
+        }
+      ]
     },
     {
-      "name": "Hotels",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/hotels"
-      }
+      "name": "Module 5 - Reservation Booking",
+      "item": [
+        {
+          "name": "Create Valid Booking",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-01-12T11:00:00.000Z\",\n  \"guests\": 2\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.test('status is Reserved', () => pm.expect(data.booking.status).to.eql('Reserved'));", "pm.test('totalAmount exists', () => pm.expect(data.booking.totalAmount).to.be.a('number'));", "pm.test('nights exists', () => pm.expect(data.booking.nights).to.be.a('number'));", "pm.collectionVariables.set('bookingId', data.booking._id);"] } }]
+        },
+        {
+          "name": "Guest Views Own Bookings",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/bookings/my" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.test('bookings array exists', () => pm.expect(data.bookings).to.be.an('array').and.not.empty);", "pm.test('created booking is visible', () => pm.expect(data.bookings.some(item => item._id === pm.collectionVariables.get('bookingId'))).to.eql(true));"] } }]
+        },
+        {
+          "name": "Invalid Dates",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"not-a-date\",\n  \"checkOut\": \"2030-01-12T11:00:00.000Z\",\n  \"guests\": 2\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Checkout Before Checkin Date",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-12T11:00:00.000Z\",\n  \"checkOut\": \"2030-01-10T14:00:00.000Z\",\n  \"guests\": 2\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Guests Exceed Capacity",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-20T14:00:00.000Z\",\n  \"checkOut\": \"2030-01-22T11:00:00.000Z\",\n  \"guests\": 999\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Unauthenticated Create Booking",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-02-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-02-12T11:00:00.000Z\",\n  \"guests\": 2\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 401', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Exhaust Standard Inventory - Booking 2",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-01-12T11:00:00.000Z\",\n  \"guests\": 1\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Exhaust Standard Inventory - Booking 3",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-01-12T11:00:00.000Z\",\n  \"guests\": 1\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Overlapping Booking Unavailable",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-01-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-01-12T11:00:00.000Z\",\n  \"guests\": 1\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Module 6 - Dynamic Pricing",
+      "item": [
+        {
+          "name": "List Pricing Rules",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/pricing?roomTypeId={{roomTypeId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.test('pricing rules exist', () => pm.expect(data.rules).to.be.an('array').and.not.empty);"] } }]
+        },
+        {
+          "name": "Verify Dynamic Pricing on Booking",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/bookings/{{bookingId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["const booking = pm.response.json().booking;", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('roomCost exists', () => pm.expect(booking.roomCost).to.be.a('number'));", "pm.test('taxes exists', () => pm.expect(booking.taxes).to.be.a('number'));", "pm.test('totalAmount exists', () => pm.expect(booking.totalAmount).to.be.a('number'));", "pm.test('nights exists', () => pm.expect(booking.nights).to.be.a('number'));", "pm.test('taxes are 12 percent', () => pm.expect(booking.taxes).to.be.closeTo(booking.roomCost * 0.12, 0.01));"] } }]
+        },
+        {
+          "name": "Create Pricing Rule - Owner",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"season\": \"normal\",\n  \"multiplier\": 1.1\n}" }, "url": "{{baseUrl}}/api/pricing" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.test('success=true', () => pm.expect(data.success).to.eql(true));", "pm.collectionVariables.set('pricingRuleId', data.rule._id);"] } }]
+        },
+        {
+          "name": "Update Pricing Rule - Owner",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"season\": \"normal\",\n  \"multiplier\": 1.15\n}" }, "url": "{{baseUrl}}/api/pricing/{{pricingRuleId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('updated multiplier', () => pm.expect(data.rule.multiplier).to.eql(1.15));"] } }]
+        },
+        {
+          "name": "Create Pricing Rule - Guest Forbidden",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"season\": \"normal\",\n  \"multiplier\": 1.2\n}" }, "url": "{{baseUrl}}/api/pricing" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 403', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Invalid Pricing Multiplier",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"season\": \"normal\",\n  \"multiplier\": 0\n}" }, "url": "{{baseUrl}}/api/pricing" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 400', () => pm.response.to.have.status(400));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Module 7 - Booking Status",
+      "item": [
+        {
+          "name": "Confirm Booking",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"Confirmed\"}" }, "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('status is Confirmed', () => pm.expect(data.booking.status).to.eql('Confirmed'));"] } }]
+        },
+        {
+          "name": "Invalid Reverse Transition",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"Reserved\"}" }, "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Guest Status Modification Forbidden",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"Cancelled\"}" }, "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 403', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Create Cancellation Booking",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-03-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-03-12T11:00:00.000Z\",\n  \"guests\": 1\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('cancellationBookingId', data.booking._id);"] } }]
+        },
+        {
+          "name": "Cancel Reserved Booking",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/bookings/{{cancellationBookingId}}/cancel" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('status is Cancelled', () => pm.expect(data.booking.status).to.eql('Cancelled'));", "pm.test('refund percentage exists', () => pm.expect(data.refundPercentage).to.be.a('number'));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Module 8 - Check-in Check-out",
+      "item": [
+        {
+          "name": "Check In Booking",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{bookingId}}/checkin" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('status is Checked-in', () => pm.expect(data.booking.status).to.eql('Checked-in'));", "pm.test('actualCheckIn exists', () => pm.expect(data.booking.actualCheckIn).to.exist);"] } }]
+        },
+        {
+          "name": "Repeated Check In",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{bookingId}}/checkin" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Check Out Booking",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{bookingId}}/checkout" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('status is Checked-out', () => pm.expect(data.booking.status).to.eql('Checked-out'));", "pm.test('actualCheckOut exists', () => pm.expect(data.booking.actualCheckOut).to.exist);"] } }]
+        },
+        {
+          "name": "Repeated Check Out",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{bookingId}}/checkout" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Create Pre-check-in Booking",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"hotelId\": \"{{hotelId}}\",\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2030-04-10T14:00:00.000Z\",\n  \"checkOut\": \"2030-04-12T11:00:00.000Z\",\n  \"guests\": 1\n}" }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["const data = pm.response.json();", "pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('preCheckinBookingId', data.booking._id);"] } }]
+        },
+        {
+          "name": "Checkout Before Check-in",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{preCheckinBookingId}}/checkout" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Operation on Cancelled Booking",
+          "request": { "method": "PUT", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/check-in-out/{{cancellationBookingId}}/checkin" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 409', () => pm.response.to.have.status(409));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Negative Tests",
+      "item": [
+        {
+          "name": "Invalid Booking ID",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/bookings/000000000000000000000000" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 404', () => pm.response.to.have.status(404));"] } }]
+        },
+        {
+          "name": "Malformed Booking ID",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/bookings/not-a-mongo-id" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 400', () => pm.response.to.have.status(400));"] } }]
+        }
+      ]
     }
   ]
 }
