@@ -15,11 +15,102 @@
     { "key": "bookingId", "value": "" },
     { "key": "cancellationBookingId", "value": "" },
     { "key": "preCheckinBookingId", "value": "" },
+    { "key": "roomId", "value": "" },
     { "key": "guestToken", "value": "" },
+    { "key": "staffToken", "value": "" },
+    { "key": "adminToken", "value": "" },
     { "key": "ownerToken", "value": "" },
     { "key": "pricingRuleId", "value": "" }
   ],
   "item": [
+    {
+      "name": "Member 3 - Sprint 3",
+      "item": [
+        {
+          "name": "Guest Booking History",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/bookings/my"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('bookings array exists', () => pm.expect(response.bookings).to.be.an('array'));", "pm.test('count exists', () => pm.expect(response.count).to.be.a('number'));" ] } }]
+        },
+        {
+          "name": "Housekeeping List",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/housekeeping"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('rooms array exists', () => pm.expect(response.rooms).to.be.an('array'));", "if (response.rooms.length) pm.collectionVariables.set('roomId', response.rooms[0]._id);" ] } }]
+        },
+        {
+          "name": "Housekeeping List - Status Filter",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/housekeeping?housekeepingStatus=clean"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('rooms array exists', () => pm.expect(response.rooms).to.be.an('array'));", "response.rooms.forEach(room => pm.expect(room.housekeepingStatus).to.eql('clean'));" ] } }]
+        },
+        {
+          "name": "Housekeeping List - Hotel Filter",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/housekeeping?hotelId={{hotelId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('rooms array exists', () => pm.expect(response.rooms).to.be.an('array'));" ] } }]
+        },
+        {
+          "name": "Update Housekeeping Status",
+          "request": {
+            "method": "PUT",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"housekeepingStatus\": \"dirty\"\n}" },
+            "url": "{{baseUrl}}/api/housekeeping/{{roomId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('status is dirty', () => pm.expect(response.room.housekeepingStatus).to.eql('dirty'));" ] } }]
+        },
+        {
+          "name": "Cancellation and Refund Policy",
+          "request": {
+            "method": "PUT",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/cancellations/{{bookingId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('refund policy exists', () => pm.expect(response.policy).to.be.an('object'));", "pm.test('refund amount exists', () => pm.expect(response.policy.refundAmount).to.be.a('number'));" ] } }]
+        },
+        {
+          "name": "Invoice Generation Summary",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{guestToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/invoices/{{bookingId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('invoice number exists', () => pm.expect(response.invoice.invoiceNumber).to.be.a('string').and.not.empty);", "pm.test('invoice total exists', () => pm.expect(response.invoice.totalAmount).to.be.a('number'));" ] } }]
+        },
+        {
+          "name": "Admin Occupancy Report",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/reports/occupancy?hotelId={{hotelId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('occupancy report exists', () => pm.expect(response.report).to.be.an('object'));", "pm.test('occupancy rate exists', () => pm.expect(response.report.occupancyRate).to.be.a('number'));" ] } }]
+        },
+        {
+          "name": "Admin Occupancy Report - Compatibility",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/admin/reports/occupancy?hotelId={{hotelId}}"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));", "pm.test('success=true', () => pm.expect(response.success).to.eql(true));", "pm.test('occupancy report exists', () => pm.expect(response.report).to.be.an('object'));" ] } }]
+        }
+      ]
+    },
     {
       "name": "Authentication",
       "item": [

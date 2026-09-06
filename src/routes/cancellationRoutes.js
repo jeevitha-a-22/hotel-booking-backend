@@ -1,1 +1,1 @@
-const r=require("express").Router(),p=require("../middleware/auth"),c=require("../controllers/cancellationController");r.put("/:id",p,c.cancelWithPolicy);module.exports=r;
+const r=require("express").Router(),{param}=require("express-validator"),p=require("../middleware/auth"),v=require("../middleware/validate"),c=require("../controllers/cancellationController");r.put("/:id",p,param("id").isMongoId(),v,c.cancelWithPolicy);module.exports=r;

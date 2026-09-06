@@ -117,7 +117,8 @@ exports.getMyBookings = async (req, res, next) => {
       guestId: req.user._id
     })
       .populate("hotelId", "name city")
-      .populate("roomTypeId", "name basePrice");
+      .populate("roomTypeId", "name basePrice")
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
